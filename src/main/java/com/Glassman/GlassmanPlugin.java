@@ -171,7 +171,6 @@ public class GlassmanPlugin extends Plugin
 		restoreSprites();
 	}
 
-
 	private String getTimeFragile()
 	{
 		Duration durationFragile = Duration.between(Instant.parse(getPlayerConfig(GLASSMANTIMER)), Instant.now());
