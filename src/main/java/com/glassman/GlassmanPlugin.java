@@ -1,4 +1,4 @@
-package com.Glassman;
+package com.glassman;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
@@ -24,7 +24,7 @@ import javax.inject.Inject;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Glassman",
+	name = "glassman",
 	description = "Play the game as a Glassman (One Health Point / Nightmare mode)",
 	tags = {"glass", "man", "1", "hp", "nightmare", "mode", "damage", "hit", "health", "heart", "fragile"}
 )
