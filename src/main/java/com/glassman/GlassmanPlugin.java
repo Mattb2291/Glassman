@@ -11,6 +11,7 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.PluginChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.util.ColorUtil;
@@ -24,7 +25,7 @@ import javax.inject.Inject;
 
 @Slf4j
 @PluginDescriptor(
-	name = "glassman",
+	name = "Glassman",
 	description = "Play the game as a Glassman (One Health Point / Nightmare mode)",
 	tags = {"glass", "man", "1", "hp", "nightmare", "mode", "damage", "hit", "health", "heart", "fragile"}
 )
@@ -41,8 +42,10 @@ public class GlassmanPlugin extends Plugin
 	private final String GLASSMANCONFIGGROUP = "GLASSMAN";
 	private final String GLASSMANVALID = "VALID";
 	private final String GLASSMANTIMER = "TIMER";
+	private Instant sessionStart;
 
-	private final HashSet<WorldArea> tutorialIslandWorldArea = new HashSet<WorldArea>(){{
+	private final HashSet<WorldArea> tutorialIslandWorldArea = new HashSet<WorldArea>()
+	{{
 		add(new WorldArea(3053, 3072,103,64,0));  // RegionIDs: 12080, 12336 and 12592
 		add(new WorldArea(3059, 3051,77,21,0));  // RegionIDs: 12079 and 12335
 		add(new WorldArea(3072, 9493,45,41,0));  // RegionID: 12436
@@ -55,22 +58,30 @@ public class GlassmanPlugin extends Plugin
 	}
 
 	@Subscribe
-	public void onPlayerSpawned(PlayerSpawned p) {
+	protected void onPluginChanged(PluginChanged p)
+	{
+		if (p.getPlugin().getName() == this.getName())
+		{
+			restoreGame(true);
+		}
+	}
+
+	@Subscribe
+	public void onPlayerSpawned(PlayerSpawned p)
+	{
 		if (p.getPlayer() == client.getLocalPlayer())
 		{
-			overrideSprites();
-
+			sessionStart = Instant.now();
 			if (locationIsOnTutorialIsland(client.getLocalPlayer().getWorldLocation()))
 			{
 				if (getCombatExperience() == 0) {
-					if (!isPlayerFragile())
-					{
-						sendGamemodeMessage("You begin to feel fragile... as though with just one hit your journey" +
-								" will be over and your heart will shatter. How far will you get?",	Color.MAGENTA);
-						playerIsFragile = true;
-						setPlayerConfig(GLASSMANTIMER,Instant.now().toString() );
-						setPlayerConfig(GLASSMANVALID,Boolean.toString(playerIsFragile));
-					}
+					overrideSprites();
+					sendGamemodeMessage("You begin to feel fragile... as though with just one hit your journey" +
+							" will be over and your heart will shatter. How far will you get?",	Color.MAGENTA);
+					playerIsFragile = true;
+					setPlayerConfig(GLASSMANTIMER,Duration.ZERO.toString());
+					setPlayerConfig(GLASSMANVALID,Boolean.toString(playerIsFragile));
+
 				}
 				else
 				{
@@ -87,6 +98,10 @@ public class GlassmanPlugin extends Plugin
 					sendGamemodeMessage("You are not eligible to be a Glassman.", Color.RED);
 					restoreGame(true);
 				}
+				else
+				{
+					overrideSprites();
+				}
 			}
 		}
 	}
@@ -96,7 +111,7 @@ public class GlassmanPlugin extends Plugin
 		if (playerIsFragile)
 		{
 			setHPOrbText(1);
-			setHPStatText(1,1, true);
+			setHPStatText(1,1);
 		}
 	}
 
@@ -107,13 +122,13 @@ public class GlassmanPlugin extends Plugin
 
 		if (damage.getHitsplat().getAmount() > 0 && playerIsFragile)
 		{
+			restoreGame(true);
+
 			sendGamemodeMessage("And with one blow, your fragile heart shatters. Having taken damage, you are no" +
 					" longer worthy of Glassman status...", Color.RED);
 
 			sendGamemodeMessage("You were a Glassman for a duration of: " +
 					getTimeFragile() + " without taking damage!", Color.RED);
-
-			restoreGame(true);
 		}
 	}
 
@@ -166,17 +181,44 @@ public class GlassmanPlugin extends Plugin
 	private void restoreGame(boolean removePlayerFromGamemode) {
 		playerIsFragile = false;
 		if (removePlayerFromGamemode) {removePlayerFromFragileMode();}
+		logTimePlayed();
 		setHPOrbText(client.getBoostedSkillLevel(Skill.HITPOINTS));
-		setHPStatText(client.getBoostedSkillLevel(Skill.HITPOINTS), client.getRealSkillLevel(Skill.HITPOINTS), false);
+		setHPStatText(client.getBoostedSkillLevel(Skill.HITPOINTS), client.getRealSkillLevel(Skill.HITPOINTS));
 		restoreSprites();
+	}
+
+	private void logTimePlayed()
+	{
+		Duration previousDuration = Duration.parse(getPlayerConfig(GLASSMANTIMER));
+		Duration finalDuration = previousDuration.plus(Duration.between(sessionStart, Instant.now()));
+		setPlayerConfig(GLASSMANTIMER,finalDuration.toString());
 	}
 
 	private String getTimeFragile()
 	{
-		Duration durationFragile = Duration.between(Instant.parse(getPlayerConfig(GLASSMANTIMER)), Instant.now());
+		Duration durationFragile = Duration.parse(getPlayerConfig(GLASSMANTIMER));
 		return durationFragile.toDaysPart() + " days and " +
 				durationFragile.toHoursPart() + " hours and " +
 				durationFragile.toMinutesPart() + " minutes.";
+	}
+
+	private void setHPOrbText(int levelToDisplay)
+	{
+		Widget HPTextWidget = client.getWidget(InterfaceID.Orbs.HEALTH_TEXT);
+		if (HPTextWidget != null)
+		{
+			HPTextWidget.setText(Integer.toString(levelToDisplay));
+		}
+	}
+
+	private void setHPStatText(int topStatLevel, int bottomStatLevel)
+	{
+		Widget HPStatWidget = client.getWidget(InterfaceID.Stats.HITPOINTS);
+		if (HPStatWidget != null) {
+			Widget[] HPStatWidgetComponents = HPStatWidget.getDynamicChildren();
+			HPStatWidgetComponents[3].setText(Integer.toString(topStatLevel));
+			HPStatWidgetComponents[4].setText(Integer.toString(bottomStatLevel));
+		}
 	}
 
 	private void overrideSprites()
@@ -195,6 +237,7 @@ public class GlassmanPlugin extends Plugin
 				log.debug("Unable to load sprite: ", ex);
 			}
 		}
+		resetGraphics();
 	}
 
 	private void restoreSprites()
@@ -204,25 +247,14 @@ public class GlassmanPlugin extends Plugin
 		{
 			client.getSpriteOverrides().remove(spriteOverride.getSpriteID());
 		}
+		resetGraphics();
 	}
 
-	private void setHPOrbText(int levelToDisplay)
+	private void resetGraphics()
 	{
-		Widget HPTextWidget = client.getWidget(InterfaceID.ORBS,9);
-		if (HPTextWidget != null)
+		if (client.getGameState() == GameState.LOGGED_IN)
 		{
-			HPTextWidget.setText(Integer.toString(levelToDisplay));
-		}
-	}
-
-	private void setHPStatText(int topStatLevel, int bottomStatLevel, boolean disableHitpointsListener)
-	{
-		Widget HPStatWidget = client.getWidget(InterfaceID.STATS, 9);
-		if (HPStatWidget != null) {
-			HPStatWidget.setHasListener(disableHitpointsListener);
-			Widget[] HPStatWidgetComponents = HPStatWidget.getDynamicChildren();
-			HPStatWidgetComponents[3].setText(Integer.toString(topStatLevel));
-			HPStatWidgetComponents[4].setText(Integer.toString(bottomStatLevel));
+			client.setGameState(GameState.LOADING);
 		}
 	}
 }
