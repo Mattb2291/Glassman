@@ -11,7 +11,6 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.events.PluginChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.util.ColorUtil;
@@ -55,15 +54,6 @@ public class GlassmanPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		restoreGame(false);
-	}
-
-	@Subscribe
-	protected void onPluginChanged(PluginChanged p)
-	{
-		if (p.getPlugin().getName() == this.getName())
-		{
-			restoreGame(true);
-		}
 	}
 
 	@Subscribe
