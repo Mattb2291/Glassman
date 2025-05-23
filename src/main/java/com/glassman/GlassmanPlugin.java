@@ -19,6 +19,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HashSet;
 import javax.inject.Inject;
 
@@ -43,11 +44,10 @@ public class GlassmanPlugin extends Plugin
 	private final String GLASSMANTIMER = "TIMER";
 	private Instant sessionStart;
 
-	private final HashSet<WorldArea> tutorialIslandWorldArea = new HashSet<WorldArea>()
-	{{
-		add(new WorldArea(3053, 3072,103,64,0));  // RegionIDs: 12080, 12336 and 12592
-		add(new WorldArea(3059, 3051,77,21,0));  // RegionIDs: 12079 and 12335
-		add(new WorldArea(3072, 9493,45,41,0));  // RegionID: 12436
+	private static final HashSet<WorldArea> tutorialIslandWorldArea = new HashSet<WorldArea>(){{
+		add(new WorldArea(3053, 3072, 103, 64, 0));    // RegionIDs: 12080, 12336 and 12592
+		add(new WorldArea(3059, 3051, 77, 21, 0));    // RegionIDs: 12079 and 12335
+		add(new WorldArea(3072, 9493, 45, 41, 0));    // RegionID: 12436
 	}};
 
 	@Override
@@ -71,7 +71,6 @@ public class GlassmanPlugin extends Plugin
 					playerIsFragile = true;
 					setPlayerConfig(GLASSMANTIMER,Duration.ZERO.toString());
 					setPlayerConfig(GLASSMANVALID,Boolean.toString(playerIsFragile));
-
 				}
 				else
 				{
@@ -102,6 +101,7 @@ public class GlassmanPlugin extends Plugin
 		{
 			setHPOrbText(1);
 			setHPStatText(1,1);
+			setHPListeners(false);
 		}
 	}
 
@@ -172,6 +172,7 @@ public class GlassmanPlugin extends Plugin
 		playerIsFragile = false;
 		if (removePlayerFromGamemode) {removePlayerFromFragileMode();}
 		logTimePlayed();
+		setHPListeners(true);
 		setHPOrbText(client.getBoostedSkillLevel(Skill.HITPOINTS));
 		setHPStatText(client.getBoostedSkillLevel(Skill.HITPOINTS), client.getRealSkillLevel(Skill.HITPOINTS));
 		restoreSprites();
@@ -190,6 +191,18 @@ public class GlassmanPlugin extends Plugin
 		return durationFragile.toDaysPart() + " days and " +
 				durationFragile.toHoursPart() + " hours and " +
 				durationFragile.toMinutesPart() + " minutes.";
+	}
+
+	private void setHPListeners(boolean setListeners)
+	{
+		Widget HPWidget = client.getWidget(InterfaceID.Stats.HITPOINTS);
+		if (HPWidget != null) {
+			HPWidget.setHasListener(setListeners);
+		}
+		HPWidget = client.getWidget(InterfaceID.Orbs.ORB_HEALTH);
+		if (HPWidget != null) {
+			HPWidget.setHasListener(setListeners);
+		}
 	}
 
 	private void setHPOrbText(int levelToDisplay)
