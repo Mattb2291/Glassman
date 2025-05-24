@@ -1,5 +1,6 @@
 package com.glassman;
 
+import com.google.common.collect.ImmutableSet;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldArea;
@@ -19,8 +20,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 import javax.inject.Inject;
 
 @Slf4j
@@ -44,11 +44,11 @@ public class GlassmanPlugin extends Plugin
 	private final String GLASSMANTIMER = "TIMER";
 	private Instant sessionStart;
 
-	private static final HashSet<WorldArea> tutorialIslandWorldArea = new HashSet<WorldArea>(){{
-		add(new WorldArea(3053, 3072, 103, 64, 0));    // RegionIDs: 12080, 12336 and 12592
-		add(new WorldArea(3059, 3051, 77, 21, 0));    // RegionIDs: 12079 and 12335
-		add(new WorldArea(3072, 9493, 45, 41, 0));    // RegionID: 12436
-	}};
+	private final Set<WorldArea> tutorialIslandWorldArea = ImmutableSet.of(
+		new WorldArea(3053, 3072, 103, 64, 0),
+		new WorldArea(3059, 3051, 77, 21, 0),
+		new WorldArea(3072, 9493, 45, 41, 0)
+	);
 
 	@Override
 	protected void shutDown() throws Exception
